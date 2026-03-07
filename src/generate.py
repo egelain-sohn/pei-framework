@@ -182,13 +182,43 @@ def clean_response(text: str) -> str:
 
 
 def format_chat_prompt(tokenizer, prompt: str) -> str:
-    """Format prompt using the model's chat template."""
-    messages = [{"role": "user", "content": prompt}]
-    # apply_chat_template returns token IDs or a string depending on args
+    """Format prompt using the model's chat template.
+
+    Provides an explicit, minimal system message so that the model's default
+    system prompt (e.g. Qwen's "You are a helpful assistant") is never
+    injected.  This prevents the default text from leaking into decoded
+    outputs when generation overshoots the end-of-turn token.
+    """
+    messages = [
+        {"role": "system", "content": "Answer the user's question."},
+        {"role": "user", "content": prompt},
+    ]
     formatted = tokenizer.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True,
     )
     return formatted
+
+
+def _get_stop_token_ids(tokenizer) -> list[int]:
+    """Collect all end-of-turn / stop token IDs for the loaded model.
+
+    Qwen-2.5 uses <|im_end|> as its turn delimiter. Other models use
+    <|eot_id|>, </s>, etc.  We gather every plausible candidate so that
+    model.generate halts cleanly.
+    """
+    stop_ids = set()
+
+    # Always include the standard EOS token
+    if tokenizer.eos_token_id is not None:
+        stop_ids.add(tokenizer.eos_token_id)
+
+    # Model-specific stop strings
+    for token_str in ["<|im_end|>", "<|eot_id|>", "<|end|>", "</s>"]:
+        ids = tokenizer.encode(token_str, add_special_tokens=False)
+        if len(ids) == 1:
+            stop_ids.add(ids[0])
+
+    return list(stop_ids)
 
 
 def generate_responses(
@@ -201,6 +231,7 @@ def generate_responses(
 ) -> list[GeneratedResponse]:
     """Run batch inference over tasks and return responses."""
     responses = []
+    stop_ids = _get_stop_token_ids(tokenizer)
 
     for start in tqdm(range(0, len(tasks), batch_size), desc="Generating"):
         batch = tasks[start : start + batch_size]
@@ -219,6 +250,7 @@ def generate_responses(
                 max_new_tokens=max_new_tokens,
                 do_sample=(temperature > 0),
                 pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=stop_ids,
             )
             if temperature > 0:
                 gen_kwargs["temperature"] = temperature

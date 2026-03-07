@@ -36,28 +36,76 @@ class JudgedResponse:
 # ---------------------------------------------------------------------------
 
 def extract_factual_answer(response: str) -> str:
-    """Extract the core answer from a factual QA response."""
-    # Take the first line / sentence as the answer
-    answer = response.strip().split("\n")[0].strip()
-    # If it's a full sentence, try to get just the answer portion
-    # Remove common preambles
-    for prefix in ["The answer is", "Answer:", "A:", "The answer to this question is"]:
-        if answer.lower().startswith(prefix.lower()):
-            answer = answer[len(prefix):].strip()
+    """Extract the core answer from a factual QA response.
+
+    Strategy (in priority order):
+      1. If the model explicitly restates with a preamble like
+         "To provide a concise answer:", prefer that line.
+      2. Otherwise, take the first non-empty line.
+      3. Strip common answer preambles.
+      4. If the result is still a full sentence (>6 words), try to
+         isolate the entity after a copula.
+    The *matcher* enforces a length check on top of this, so returning
+    a longish string is acceptable — it just won't get containment
+    matching.
+    """
+    text = response.strip()
+    lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+
+    # Check for an explicit restatement line anywhere in the response
+    restatement_cues = [
+        "to provide a concise answer",
+        "in short",
+        "to summarise",
+        "to summarize",
+        "the short answer is",
+        "simply put",
+        "concisely",
+    ]
+    for line in lines:
+        line_lower = line.lower()
+        for cue in restatement_cues:
+            if cue in line_lower:
+                # Take everything after the cue
+                idx = line_lower.index(cue) + len(cue)
+                after = line[idx:].lstrip(":,; ").strip().rstrip(".!,;:")
+                if after:
+                    text = after
+                    lines = None  # signal that we've found our answer
+                    break
+        if lines is None:
+            break
+
+    # If no restatement found, take the first non-empty line
+    if lines is not None:
+        text = lines[0] if lines else text
+
+    # Strip common answer preambles (case-insensitive)
+    preambles = [
+        "the answer is", "answer:", "a:", "the answer to this question is",
+        "the answer to the question is", "the answer to that is",
+    ]
+    text_lower = text.lower()
+    for prefix in preambles:
+        if text_lower.startswith(prefix):
+            text = text[len(prefix):].strip()
+            text_lower = text.lower()
+
     # Strip trailing punctuation
-    answer = answer.rstrip(".")
-    # If the answer is still a long sentence, try to extract the key entity
-    # (heuristic: if it contains "is" or "was", take what comes after)
-    if len(answer.split()) > 8:
+    text = text.rstrip(".!,;:")
+
+    # If still a full sentence (>6 words), try to extract what follows a copula
+    words = text.split()
+    if len(words) > 6:
         for splitter in [" is ", " was ", " are ", " were "]:
-            if splitter in answer.lower():
-                parts = answer.split(splitter, 1)
-                candidate = parts[-1].strip().rstrip(".")
-                # Only use if the candidate is shorter (i.e. we actually narrowed it)
-                if len(candidate.split()) < len(answer.split()):
-                    answer = candidate
+            if splitter in text.lower():
+                idx = text.lower().index(splitter) + len(splitter)
+                candidate = text[idx:].strip().rstrip(".")
+                if 1 <= len(candidate.split()) <= len(words) - 2:
+                    text = candidate
                 break
-    return answer
+
+    return text.strip()
 
 
 def extract_numerical_answer(response: str) -> str:
@@ -81,13 +129,16 @@ def extract_letter_answer(response: str) -> str:
     # Direct single letter
     if response_clean in ("A", "B", "C", "D"):
         return response_clean
-    # Look for patterns like (A), A), A.
-    match = re.search(r"\(?([A-D])\)?[.\s:]", response_clean)
+    # Look for patterns like (A), A), A., "A "
+    match = re.search(r"\(?([A-D])\)?[.\s:,)]", response_clean)
     if match:
         return match.group(1)
-    # First letter if response starts with one
-    if response_clean and response_clean[0] in "ABCD":
+    # First character — but only if it's a letter followed by a
+    # non-alphabetic character (so "ALTHOUGH..." doesn't match as "A")
+    if len(response_clean) >= 2 and response_clean[0] in "ABCD" and not response_clean[1].isalpha():
         return response_clean[0]
+    if len(response_clean) == 1 and response_clean in "ABCD":
+        return response_clean
     return ""
 
 
@@ -115,17 +166,44 @@ def normalise(text: str) -> str:
 
 
 def match_factual(extracted: str, ground_truth: str, aliases: list[str] = None) -> bool:
-    """Check if extracted answer matches any acceptable answer."""
+    """Check if extracted answer matches any acceptable answer.
+
+    Three tiers of matching, applied in order:
+      1. Exact normalised equality — always.
+      2. Containment — only when the extracted string is concise (≤5
+         normalised tokens), preventing spurious hits in long sentences.
+      3. Suffix-anchored — when the ground truth is short (≤3 tokens)
+         and appears at the very end of the extracted string.  This
+         catches cases like extracted="killed in 1934", gt="1934".
+    """
     norm_ext = normalise(extracted)
+    ext_words = norm_ext.split()
     candidates = [ground_truth] + (aliases or [])
 
     for candidate in candidates:
         norm_cand = normalise(candidate)
-        # Exact match after normalisation
+        if not norm_cand:
+            continue
+        cand_words = norm_cand.split()
+
+        # Tier 1: exact match after normalisation
         if norm_ext == norm_cand:
             return True
-        # Containment (either direction) for short answers
-        if len(norm_cand) > 2 and (norm_cand in norm_ext or norm_ext in norm_cand):
+
+        # Tier 2: containment — only when extracted is short
+        if len(ext_words) <= 5 and len(norm_cand) > 2:
+            if norm_cand in norm_ext or norm_ext in norm_cand:
+                return True
+
+        # Tier 3: suffix-anchored — short ground truth at end of extraction
+        if len(cand_words) <= 3 and len(ext_words) > len(cand_words):
+            if ext_words[-len(cand_words):] == cand_words:
+                return True
+
+        # Tier 4: single-word ground truth appearing as a standalone word
+        # in the extraction.  Catches "thick pea soup" matching gt "soup".
+        # Limited to 1-word ground truths to avoid spurious partial matches.
+        if len(cand_words) == 1 and norm_cand in ext_words:
             return True
 
     return False
