@@ -39,12 +39,24 @@ def extract_factual_answer(response: str) -> str:
     """Extract the core answer from a factual QA response."""
     # Take the first line / sentence as the answer
     answer = response.strip().split("\n")[0].strip()
+    # If it's a full sentence, try to get just the answer portion
     # Remove common preambles
-    for prefix in ["The answer is", "Answer:", "A:"]:
+    for prefix in ["The answer is", "Answer:", "A:", "The answer to this question is"]:
         if answer.lower().startswith(prefix.lower()):
             answer = answer[len(prefix):].strip()
     # Strip trailing punctuation
     answer = answer.rstrip(".")
+    # If the answer is still a long sentence, try to extract the key entity
+    # (heuristic: if it contains "is" or "was", take what comes after)
+    if len(answer.split()) > 8:
+        for splitter in [" is ", " was ", " are ", " were "]:
+            if splitter in answer.lower():
+                parts = answer.split(splitter, 1)
+                candidate = parts[-1].strip().rstrip(".")
+                # Only use if the candidate is shorter (i.e. we actually narrowed it)
+                if len(candidate.split()) < len(answer.split()):
+                    answer = candidate
+                break
     return answer
 
 

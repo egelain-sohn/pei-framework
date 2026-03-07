@@ -164,6 +164,33 @@ def load_model(config: dict) -> tuple:
 # Generation
 # ---------------------------------------------------------------------------
 
+def clean_response(text: str) -> str:
+    """Strip system prompt artefacts and trailing junk from generated text."""
+    # Common system prompt leaks from instruction-tuned models
+    cutoff_phrases = [
+        "You are an AI assistant",
+        "You are a helpful assistant",
+        "<|im_end|>",
+        "<|im_start|>",
+        "<|endoftext|>",
+    ]
+    for phrase in cutoff_phrases:
+        idx = text.find(phrase)
+        if idx > 0:  # only cut if it's not at the very start
+            text = text[:idx]
+    return text.strip()
+
+
+def format_chat_prompt(tokenizer, prompt: str) -> str:
+    """Format prompt using the model's chat template."""
+    messages = [{"role": "user", "content": prompt}]
+    # apply_chat_template returns token IDs or a string depending on args
+    formatted = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True,
+    )
+    return formatted
+
+
 def generate_responses(
     model,
     tokenizer,
@@ -177,10 +204,12 @@ def generate_responses(
 
     for start in tqdm(range(0, len(tasks), batch_size), desc="Generating"):
         batch = tasks[start : start + batch_size]
-        prompts = [t.prompt for t in batch]
+
+        # Use chat template for proper formatting
+        formatted_prompts = [format_chat_prompt(tokenizer, t.prompt) for t in batch]
 
         inputs = tokenizer(
-            prompts, return_tensors="pt", padding=True, truncation=True,
+            formatted_prompts, return_tensors="pt", padding=True, truncation=True,
             max_length=1024,
         ).to(model.device)
 
@@ -201,6 +230,7 @@ def generate_responses(
             input_len = inputs["input_ids"][j].shape[0]
             generated_ids = outputs[j][input_len:]
             text = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+            text = clean_response(text)
 
             responses.append(GeneratedResponse(
                 task_id=task.task_id,
