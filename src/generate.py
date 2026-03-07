@@ -144,7 +144,11 @@ def load_model(config: dict) -> tuple:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    kwargs = {"device_map": config["model"].get("device", "auto")}
+    kwargs = {
+        "device_map": config["model"].get("device", "auto"),
+        "torch_dtype": torch.float16,
+        "low_cpu_mem_usage": True,
+    }
 
     if quant == "4bit":
         kwargs["quantization_config"] = BitsAndBytesConfig(
