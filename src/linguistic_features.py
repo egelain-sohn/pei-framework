@@ -23,6 +23,7 @@ from pathlib import Path
 
 import numpy as np
 import spacy
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,9 @@ HEDGES = {
     "roughly", "approximately", "somewhat", "to some extent",
     "in some cases", "it could be", "likely", "unlikely",
     "not entirely clear", "uncertain", "debatable",
-    "could", "would", "may",
+    "it is possible", "it may be", "it might be", "I'm not sure",
+    "not necessarily", "remains unclear", "hard to say",
+    "could be", "would suggest", "might suggest",
 }
 
 # Direct evidence claims
@@ -198,12 +201,23 @@ def extract_syntactic_features(doc) -> dict:
         if not text.endswith("?"):
             n_declarative += 1
 
-        # Active voice heuristic: subject appears before main verb
-        # (simplified — check if root verb has nsubj dependency)
-        root = sent.root
-        has_nsubj = any(child.dep_ == "nsubj" for child in root.children)
-        has_nsubjpass = any(child.dep_ == "nsubjpass" for child in root.children)
-        if has_nsubj and not has_nsubjpass:
+        # Passive voice detection for spaCy v3+:
+        # Look for past participle (VBN) governed by a form of "be" as
+        # auxiliary, OR the older nsubjpass label if the model uses it.
+        is_passive = False
+        for token in sent:
+            # Old-style label (some models still use it)
+            if token.dep_ == "nsubjpass":
+                is_passive = True
+                break
+            # New-style: past participle with a "be" auxiliary
+            if token.tag_ == "VBN" and any(
+                child.dep_ in ("aux", "auxpass") and child.lemma_ == "be"
+                for child in token.children
+            ):
+                is_passive = True
+                break
+        if not is_passive:
             n_active += 1
 
     n = len(sentences)
@@ -246,35 +260,52 @@ def compute_lcs(features: LinguisticFeatures) -> float:
 
     Higher LCS = the response presents its content more confidently.
     Scale: 0–1.
+
+    Weighting rationale:
+      - Epistemic stance (booster ratio) and syntactic assertiveness are
+        the strongest signals of surface confidence, so they get more weight.
+      - Bald assertion ratio has low variance (most responses lack evidential
+        markers), so it gets reduced weight.
+      - Binary features (claim_in_first_sentence) are coarser signals.
+      - Repetition acts as a penalty on fluency/polish.
     """
-    scores = []
+    weighted = []
+    # (score, weight) pairs
 
     # Epistemic: more boosters relative to hedges → higher confidence
-    scores.append(features.booster_ratio)
+    weighted.append((features.booster_ratio, 2.0))
 
-    # Evidentiality: more bald assertions → higher apparent confidence
+    # Evidentiality: bald assertions (low variance, reduced weight)
     if features.n_sentences > 0:
         bald_ratio = features.n_bald_assertions / features.n_sentences
-        scores.append(bald_ratio)
+        weighted.append((bald_ratio, 0.5))
     else:
-        scores.append(0.5)
+        weighted.append((0.5, 0.5))
 
-    # Discourse: claim first + few concessions + definite reference → confident
-    scores.append(1.0 if features.claim_in_first_sentence else 0.0)
+    # Discourse: claim first + few concessions + definite reference
+    weighted.append((1.0 if features.claim_in_first_sentence else 0.0, 1.0))
     concessive_penalty = min(features.n_concessive_structures / 3, 1.0)
-    scores.append(1.0 - concessive_penalty)
-    scores.append(features.definite_reference_ratio)
+    weighted.append((1.0 - concessive_penalty, 1.0))
+    weighted.append((features.definite_reference_ratio, 1.0))
 
     # Syntactic: declarative + active → assertive
-    scores.append(features.declarative_ratio)
-    scores.append(features.active_voice_ratio)
+    weighted.append((features.declarative_ratio, 1.5))
+    weighted.append((features.active_voice_ratio, 1.5))
 
-    # Fluency: longer, non-repetitive sentences → more polished/persuasive
-    # (normalise sentence length to rough 0–1 scale, capping at 30 tokens)
+    # Fluency: longer sentences → more polished/persuasive
     length_score = min(features.mean_sentence_length / 30.0, 1.0)
-    scores.append(length_score)
+    weighted.append((length_score, 1.0))
 
-    return float(np.mean(scores))
+    # Repetition penalty: repetitive text sounds less authoritative
+    if features.has_repetition:
+        weighted.append((0.0, 0.5))
+    else:
+        weighted.append((1.0, 0.5))
+
+    total_weight = sum(w for _, w in weighted)
+    score = sum(s * w for s, w in weighted) / total_weight
+
+    return float(score)
 
 
 # ---------------------------------------------------------------------------
@@ -292,12 +323,14 @@ def extract_all_features(
 
     features_list = []
 
-    for task_id, domain, response in tqdm(
-        zip(task_ids, domains, responses), total=len(task_ids),
-        desc="Extracting linguistic features"
-    ):
-        doc = nlp(response)
+    # nlp.pipe is significantly faster than calling nlp() in a loop
+    docs = nlp.pipe(responses, batch_size=64)
 
+    for (task_id, domain, response), doc in tqdm(
+        zip(zip(task_ids, domains, responses), docs),
+        total=len(task_ids),
+        desc="Extracting linguistic features",
+    ):
         epistemic = extract_epistemic_features(response)
         evidentiality = extract_evidentiality_features(response, doc)
         discourse = extract_discourse_features(response, doc)
