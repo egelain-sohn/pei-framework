@@ -20,6 +20,7 @@ import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -150,9 +151,14 @@ def train_probes(
     labels: np.ndarray,
     test_split: float = 0.2,
     random_seed: int = 42,
-) -> tuple[dict[int, LogisticRegression], list[ProbeResult]]:
+) -> tuple[dict[int, tuple[LogisticRegression, StandardScaler]], list[ProbeResult]]:
     """
     Train a logistic regression probe per layer.
+
+    Activations are standardised (zero mean, unit variance) before
+    fitting.  Each layer gets its own scaler, fitted on the training
+    split only.  The returned dict maps layer_idx → (probe, scaler)
+    so that the same transform can be applied at ISD scoring time.
 
     Args:
         activations: layer_idx → (n_samples, hidden_dim) array
@@ -161,7 +167,7 @@ def train_probes(
         random_seed: for reproducibility
 
     Returns:
-        probes: layer_idx → fitted LogisticRegression
+        probes: layer_idx → (fitted LogisticRegression, fitted StandardScaler)
         results: per-layer performance metrics
     """
     probes = {}
@@ -176,8 +182,13 @@ def train_probes(
         X_train, X_test = X[X_train_idx], X[X_test_idx]
         y_train, y_test = labels[X_train_idx], labels[X_test_idx]
 
+        # Standardise: fit on train only, apply to both
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+
         probe = LogisticRegression(
-            max_iter=1000, solver="lbfgs", C=1.0, random_state=random_seed,
+            max_iter=2000, solver="lbfgs", C=1.0, random_state=random_seed,
         )
         probe.fit(X_train, y_train)
 
@@ -190,7 +201,7 @@ def train_probes(
         except ValueError:
             auc = 0.5  # edge case: single class in test set
 
-        probes[layer_idx] = probe
+        probes[layer_idx] = (probe, scaler)
         results.append(ProbeResult(
             layer_idx=layer_idx, accuracy=acc, auc=auc,
             n_train=len(X_train), n_test=len(X_test),
@@ -206,7 +217,7 @@ def train_probes(
 
 def compute_isd(
     activations: dict[int, np.ndarray],
-    probes: dict[int, LogisticRegression],
+    probes: dict[int, tuple],
     task_ids: list[str],
     domains: list[str],
     labels: np.ndarray,
@@ -216,13 +227,16 @@ def compute_isd(
 
     ISD = probe's predicted P(correct) for each response.
     For errors, high ISD means the model internally "knows" the right answer.
+
+    probes: layer_idx → (LogisticRegression, StandardScaler)
     """
     scores = []
 
     for i in range(len(task_ids)):
         layer_scores = {}
-        for layer_idx, probe in probes.items():
+        for layer_idx, (probe, scaler) in probes.items():
             x = activations[layer_idx][i].reshape(1, -1)
+            x = scaler.transform(x)
             p_correct = probe.predict_proba(x)[0, 1]
             layer_scores[layer_idx] = float(p_correct)
 
