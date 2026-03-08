@@ -71,11 +71,30 @@ def extract_activations(
     layer_indices: list[int],
     batch_size: int = 4,
     position: str = "last_token",
+    format_fn=None,
 ) -> dict[int, np.ndarray]:
     """
     Extract hidden-state activations at the final token of each response.
 
-    Returns dict mapping layer_idx → array of shape (n_samples, hidden_dim).
+    Args:
+        model: the HuggingFace model (same one used for generation).
+        tokenizer: corresponding tokenizer.
+        prompts: raw user prompts (before chat-template formatting).
+        responses: model-generated response strings.
+        layer_indices: which layers to extract from.
+        batch_size: inference batch size (keep small — forward pass
+            with output_hidden_states=True uses ~2× the memory of
+            generation).
+        position: "last_token" to probe at the final non-padding
+            position (recommended).
+        format_fn: callable(tokenizer, prompt) → formatted string.
+            If provided, each prompt is formatted through this before
+            concatenation with the response.  **This must match the
+            formatting used during generation** — otherwise the token
+            positions diverge and the activations are meaningless.
+
+    Returns:
+        dict mapping layer_idx → array of shape (n_samples, hidden_dim).
     """
     activations = {layer: [] for layer in layer_indices}
 
@@ -83,8 +102,11 @@ def extract_activations(
         batch_prompts = prompts[start : start + batch_size]
         batch_responses = responses[start : start + batch_size]
 
-        # Tokenise the full prompt+response to get activations at the response
-        full_texts = [p + r for p, r in zip(batch_prompts, batch_responses)]
+        # Reconstruct the exact token sequence the model saw during generation
+        if format_fn is not None:
+            full_texts = [format_fn(tokenizer, p) + r for p, r in zip(batch_prompts, batch_responses)]
+        else:
+            full_texts = [p + r for p, r in zip(batch_prompts, batch_responses)]
 
         inputs = tokenizer(
             full_texts, return_tensors="pt", padding=True,
@@ -110,6 +132,10 @@ def extract_activations(
             for layer_idx in layer_indices:
                 act = hidden_states[layer_idx][j, last_pos, :].cpu().float().numpy()
                 activations[layer_idx].append(act)
+
+        # Free GPU memory between batches
+        del outputs, hidden_states, inputs
+        torch.cuda.empty_cache()
 
     # Stack into arrays
     return {k: np.stack(v) for k, v in activations.items()}

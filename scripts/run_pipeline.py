@@ -29,7 +29,7 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.generate import run_generation, load_responses, LOADERS, load_model
+from src.generate import run_generation, load_responses, LOADERS, load_model, format_chat_prompt
 from src.identify_errors import judge_responses, save_judged, load_judged
 from src.probe_internals import (
     select_layers, extract_activations, train_probes, compute_isd,
@@ -115,6 +115,7 @@ def main():
             model, tokenizer, prompts, responses_text,
             layer_indices=layer_indices,
             batch_size=config["generation"]["batch_size"] // 2,  # smaller for memory
+            format_fn=format_chat_prompt,
         )
         save_activations(activations, results_dir / "activations.npz")
 
