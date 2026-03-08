@@ -1,0 +1,34 @@
+# Data and results (large files)
+data/results/*.jsonl
+data/results/*.npz
+data/results/*.pkl
+data/results/*.json
+data/results/figures/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

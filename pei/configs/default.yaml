@@ -1,0 +1,50 @@
+# PEI Pipeline Configuration
+
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  quantisation: "4bit"  # bnb 4-bit for Colab Pro
+  device: "auto"
+
+tasks:
+  factual_qa:
+    dataset: "trivia_qa"
+    subset: "rc.nocontext"
+    n_samples: 1500
+  reasoning:
+    dataset: "gsm8k"
+    subset: "main"
+    n_samples: 1000
+  commonsense:
+    dataset: "hellaswag"
+    subset: null
+    n_samples: 1000
+
+generation:
+  max_new_tokens: 256
+  temperature: 0.0  # greedy for reproducibility
+  batch_size: 8
+
+probing:
+  layers: "auto"  # [0, L//4, L//2, 3L//4, L-1]
+  position: "last_token"
+  probe_type: "logistic_regression"
+  test_split: 0.2
+  random_seed: 42
+
+linguistic_features:
+  spacy_model: "en_core_web_sm"
+  categories:
+    - epistemic_stance
+    - evidentiality
+    - discourse_confidence
+    - syntactic_assertiveness
+    - fluency
+
+pei:
+  isd_weight: 0.5
+  lcs_weight: 0.5
+  normalisation: "min_max"
+
+output:
+  results_dir: "data/results"
+  figures_dir: "data/results/figures"
