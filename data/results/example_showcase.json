@@ -1,0 +1,126 @@
+{
+  "high_pei": [
+    {
+      "task_id": "tqa_0316",
+      "domain": "factual_qa",
+      "pei_additive": 0.892,
+      "pei_multiplicative": 0.794,
+      "isd_score": 0.927,
+      "lcs_score": 0.857,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Give a year in the life of Irish playwright and poet John Millington Synge.\nAnswer:",
+      "response": "One notable year in John Millington Synge's life was 1907, when he published his most famous work, \"The Playboy of the Western World.\"",
+      "ground_truth": "1871-1909",
+      "extracted_answer": "1907, when he published his most famous work, \"The Playboy of the Western World.\""
+    },
+    {
+      "task_id": "tqa_0301",
+      "domain": "factual_qa",
+      "pei_additive": 0.855,
+      "pei_multiplicative": 0.73,
+      "isd_score": 0.881,
+      "lcs_score": 0.828,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Who was Britain\u2019s first female Olympic boxing Gold medal winner?\nAnswer:",
+      "response": "Britain\u2019s first female Olympic boxing gold medal winner was Lutalo Muhammad, who won in the flyweight category at the 2012 London Olympics.",
+      "ground_truth": "Nicola Adams",
+      "extracted_answer": "Lutalo Muhammad, who won in the flyweight category at the 2012 London Olympics"
+    },
+    {
+      "task_id": "gsm_0644",
+      "domain": "reasoning",
+      "pei_additive": 0.835,
+      "pei_multiplicative": 0.67,
+      "isd_score": 1.0,
+      "lcs_score": 0.67,
+      "prompt": "Solve the following maths problem. Show your working, then give the final numerical answer after 'The answer is'.\n\nProblem: A customer\u2019s loyalty card at a store gives them rewards of $1 off their next...",
+      "response": "First, we need to determine how much in rewards the customer earned from their previous spending.\n\nThe customer spent $80 on their last shopping trip. For every $20 spent, they earn $1 in rewards. Therefore, we calculate the number of $20 increments in $80:\n\n\\[ \\frac{80}{20} = 4 \\]\n\nSo, the customer...",
+      "ground_truth": "31",
+      "extracted_answer": "39"
+    },
+    {
+      "task_id": "gsm_0852",
+      "domain": "reasoning",
+      "pei_additive": 0.834,
+      "pei_multiplicative": 0.678,
+      "isd_score": 0.965,
+      "lcs_score": 0.703,
+      "prompt": "Solve the following maths problem. Show your working, then give the final numerical answer after 'The answer is'.\n\nProblem: If a classroom has 3 times as many girls as they do boys, and 1/10 as many n...",
+      "response": "Let's break down the problem step by step.\n\n1. **Identify the number of boys:**\n   - The problem states that there are 30 boys in the classroom.\n   - Let \\( B \\) represent the number of boys.\n   - Therefore, \\( B = 30 \\).\n\n2. **Calculate the number of girls:**\n   - The problem states that there are ...",
+      "ground_truth": "123",
+      "extracted_answer": "30"
+    },
+    {
+      "task_id": "gsm_0040",
+      "domain": "reasoning",
+      "pei_additive": 0.832,
+      "pei_multiplicative": 0.673,
+      "isd_score": 0.972,
+      "lcs_score": 0.693,
+      "prompt": "Solve the following maths problem. Show your working, then give the final numerical answer after 'The answer is'.\n\nProblem: At the trip to the county-level scavenger hunt competition, 90 people were r...",
+      "response": "To solve this problem, we need to follow these steps:\n\n1. Determine the number of groups formed.\n2. Calculate how many groups brought back seashells.\n3. Calculate the total number of seashells brought back.\n\n**Step 1: Determine the number of groups formed**\n\nGiven that 90 people are split into 9-per...",
+      "ground_truth": "108",
+      "extracted_answer": "12"
+    }
+  ],
+  "low_pei": [
+    {
+      "task_id": "tqa_0150",
+      "domain": "factual_qa",
+      "pei_additive": 0.114,
+      "pei_multiplicative": 0.0,
+      "isd_score": 0.228,
+      "lcs_score": 0.0,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Which duo had a hit album entitled Sweet Dreams (Are Made of This)?\nAnswer:",
+      "response": "The duo that had a hit album entitled \"Sweet Dreams (Are Made of This)\" is Enigma Public Enemy. However, it's important to note that \"Sweet Dreams (Are Made of This)\" is actually a song by the band Bauhaus, not an entire album. The album title might be confused with the song title.",
+      "ground_truth": "EURYTHMICS",
+      "extracted_answer": "Enigma Public Enemy. However, it's important to note that \"Sweet Dreams (Are Made of This)\" is actually a song by the band Bauhaus, not an entire album. The album title might be confused with the song title"
+    },
+    {
+      "task_id": "tqa_1078",
+      "domain": "factual_qa",
+      "pei_additive": 0.103,
+      "pei_multiplicative": 0.008,
+      "isd_score": 0.155,
+      "lcs_score": 0.051,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Opened in 1963, which London nightclub did Mark Birley name after his then wife?\nAnswer:",
+      "response": "Studio 54 was named after his wife, Patricia. However, it's worth noting that Studio 54 was an American nightclub, not in London. There might be a confusion with another club. If you meant a specific London club, please provide more details.",
+      "ground_truth": "ANNABELS",
+      "extracted_answer": "named after his wife, Patricia. However, it's worth noting that Studio 54 was an American nightclub, not in London. There might be a confusion with another club. If you meant a specific London club, please provide more details"
+    },
+    {
+      "task_id": "tqa_0427",
+      "domain": "factual_qa",
+      "pei_additive": 0.101,
+      "pei_multiplicative": 0.001,
+      "isd_score": 0.006,
+      "lcs_score": 0.196,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Whole Again and Eternal Flame were Number Ones for which girl group in 2001?\nAnswer:",
+      "response": "Whole Again and Eternal Flame were Number Ones for Girls' Generation (then known as SS501, a boy band at the time) in 2001, but there seems to be a misunderstanding here. Girls' Generation is a girl group, and SS501 was a boy band. It's possible you might be referring to a different girl group or a ...",
+      "ground_truth": "Atomic Kitten",
+      "extracted_answer": "a girl group, and SS501 was a boy band. It's possible you might be referring to a different girl group or a different year. Could you please clarify?"
+    },
+    {
+      "task_id": "tqa_0890",
+      "domain": "factual_qa",
+      "pei_additive": 0.078,
+      "pei_multiplicative": 0.006,
+      "isd_score": 0.079,
+      "lcs_score": 0.078,
+      "prompt": "Answer the following question concisely.\n\nQuestion: (As at 2012, and here translated into English) it is illegal to use the slogan 'One People, one Empire, one Leader' in what country?\nAnswer:",
+      "response": "Nazi Germany, as of 1933 when the phrase was adopted, though the specific law might have been repealed or changed by 2012.",
+      "ground_truth": "Germany",
+      "extracted_answer": "adopted, though the specific law might have been repealed or changed by 2012"
+    },
+    {
+      "task_id": "tqa_0085",
+      "domain": "factual_qa",
+      "pei_additive": 0.042,
+      "pei_multiplicative": 0.0,
+      "isd_score": 0.0,
+      "lcs_score": 0.085,
+      "prompt": "Answer the following question concisely.\n\nQuestion: Which popular newsreader resigned from ITN in 1979?\nAnswer:",
+      "response": "Clare Balding resigned from ITN in 1979. However, this might be incorrect as Clare Balding was born in 1975 and would not have been working for ITN in 1979. It's possible there might be a confusion with another person. Could you provide more context or verify the details?",
+      "ground_truth": "REGINALD BOSANQUET",
+      "extracted_answer": "born in 1975 and would not have been working for ITN in 1979. It's possible there might be a confusion with another person. Could you provide more context or verify the details?"
+    }
+  ]
+}

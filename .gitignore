@@ -2,8 +2,19 @@
 data/results/*.jsonl
 data/results/*.npz
 data/results/*.pkl
-data/results/*.json
-data/results/figures/
+
+# Allow specific result files
+!data/results/summary_stats.json
+!data/results/example_showcase.json
+!data/results/probe_results.json
+
+# Allow figures directory and specific figures
+!data/results/figures/
+data/results/figures/*
+!data/results/figures/pei_distribution.png
+!data/results/figures/isd_vs_lcs.png
+!data/results/figures/probe_accuracy.png
+!data/results/figures/isd_calibrated_distribution.png
 
 # Python
 __pycache__/
