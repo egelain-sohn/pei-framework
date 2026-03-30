@@ -1,6 +1,6 @@
 # Persuasive Error Index (PEI)
 
-**Measuring when language models are confidently wrong, and when it matters most for human oversight.**
+**Measuring when language models are confidently wrong and when it matters most for human oversight.**
 
 ---
 
