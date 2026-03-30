@@ -1,5 +1,5 @@
 """
-pei_score.py — Compute the Persuasive Error Index from ISD and LCS components.
+pei_score.py: Compute the Persuasive Error Index from ISD and LCS components.
 
 PEI = f(ISD, LCS) where:
   - ISD: internal-surface divergence (probe confidence that an incorrect answer is correct)
@@ -27,9 +27,9 @@ class PEIResult:
     task_id: str
     domain: str
     is_correct: bool
-    isd_score: float       # 0–1, higher = model internally encodes correctness
-    lcs_score: float       # 0–1, higher = more confidently presented
-    pei_score: float       # 0–1, composite
+    isd_score: float       # 0-1, higher = model internally encodes correctness
+    lcs_score: float       # 0-1, higher = more confidently presented
+    pei_score: float       # 0-1, composite
     pei_rank: int = 0      # rank among errors (1 = most persuasive)
 
 

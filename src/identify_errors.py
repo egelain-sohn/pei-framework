@@ -1,5 +1,5 @@
 """
-identify_errors.py — Compare model responses to ground truth.
+identify_errors.py: Compare model responses to ground truth.
 
 Handles domain-specific answer extraction and matching:
   - Factual QA: fuzzy string matching against answer aliases
@@ -46,7 +46,7 @@ def extract_factual_answer(response: str) -> str:
       4. If the result is still a full sentence (>6 words), try to
          isolate the entity after a copula.
     The *matcher* enforces a length check on top of this, so returning
-    a longish string is acceptable — it just won't get containment
+    a longish string is acceptable; it just won't get containment
     matching.
     """
     text = response.strip()
@@ -133,7 +133,7 @@ def extract_letter_answer(response: str) -> str:
     match = re.search(r"\(?([A-D])\)?[.\s:,)]", response_clean)
     if match:
         return match.group(1)
-    # First character — but only if it's a letter followed by a
+    # First character, but only if it's a letter followed by a
     # non-alphabetic character (so "ALTHOUGH..." doesn't match as "A")
     if len(response_clean) >= 2 and response_clean[0] in "ABCD" and not response_clean[1].isalpha():
         return response_clean[0]
@@ -169,10 +169,10 @@ def match_factual(extracted: str, ground_truth: str, aliases: list[str] = None) 
     """Check if extracted answer matches any acceptable answer.
 
     Three tiers of matching, applied in order:
-      1. Exact normalised equality — always.
-      2. Containment — only when the extracted string is concise (≤5
+      1. Exact normalised equality (always applied).
+      2. Containment, only when the extracted string is concise (≤5
          normalised tokens), preventing spurious hits in long sentences.
-      3. Suffix-anchored — when the ground truth is short (≤3 tokens)
+      3. Suffix-anchored: when the ground truth is short (≤3 tokens)
          and appears at the very end of the extracted string.  This
          catches cases like extracted="killed in 1934", gt="1934".
     """
@@ -190,12 +190,12 @@ def match_factual(extracted: str, ground_truth: str, aliases: list[str] = None) 
         if norm_ext == norm_cand:
             return True
 
-        # Tier 2: containment — only when extracted is short
+        # Tier 2: containment, only when extracted is short
         if len(ext_words) <= 5 and len(norm_cand) > 2:
             if norm_cand in norm_ext or norm_ext in norm_cand:
                 return True
 
-        # Tier 3: suffix-anchored — short ground truth at end of extraction
+        # Tier 3: suffix-anchored, short ground truth at end of extraction
         if len(cand_words) <= 3 and len(ext_words) > len(cand_words):
             if ext_words[-len(cand_words):] == cand_words:
                 return True

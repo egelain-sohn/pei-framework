@@ -1,5 +1,5 @@
 """
-linguistic_features.py — Extract linguistic confidence features from model responses.
+linguistic_features.py: Extract linguistic confidence features from model responses.
 
 Implements the Linguistic Confidence Score (LCS) component using a
 principled taxonomy of surface-level features that capture how confidently
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Lexicons — linguistically principled, not naive keyword lists
+# Lexicons: linguistically principled, not naive keyword lists
 # ---------------------------------------------------------------------------
 
 # Epistemic boosters: markers that strengthen assertion
@@ -259,7 +259,7 @@ def compute_lcs(features: LinguisticFeatures) -> float:
     Compute Linguistic Confidence Score from feature vector.
 
     Higher LCS = the response presents its content more confidently.
-    Scale: 0–1.
+    Scale: 0 to 1.
 
     Weighting rationale:
       - Epistemic stance (booster ratio) and syntactic assertiveness are

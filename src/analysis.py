@@ -1,5 +1,5 @@
 """
-analysis.py — Visualisation and statistical analysis of PEI results.
+analysis.py: Visualisation and statistical analysis of PEI results.
 
 Produces:
   - PEI distribution plots (overall and by domain)

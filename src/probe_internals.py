@@ -1,5 +1,5 @@
 """
-probe_internals.py — Extract hidden-state activations and train linear probes.
+probe_internals.py: Extract hidden-state activations and train linear probes.
 
 This module implements the Internal-Surface Divergence (ISD) component:
   1. Extract activations at selected layers for each response
@@ -83,15 +83,15 @@ def extract_activations(
         prompts: raw user prompts (before chat-template formatting).
         responses: model-generated response strings.
         layer_indices: which layers to extract from.
-        batch_size: inference batch size (keep small — forward pass
-            with output_hidden_states=True uses ~2× the memory of
+        batch_size: inference batch size (keep small; forward pass
+            with output_hidden_states=True uses ~2x the memory of
             generation).
         position: "last_token" to probe at the final non-padding
             position (recommended).
         format_fn: callable(tokenizer, prompt) → formatted string.
             If provided, each prompt is formatted through this before
             concatenation with the response.  **This must match the
-            formatting used during generation** — otherwise the token
+            formatting used during generation**; otherwise the token
             positions diverge and the activations are meaningless.
 
     Returns:

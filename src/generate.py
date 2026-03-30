@@ -1,5 +1,5 @@
 """
-generate.py — Generate model responses to task sets with ground truth.
+generate.py: Generate model responses to task sets with ground truth.
 
 Handles loading datasets (TriviaQA, GSM8K, HellaSwag), formatting prompts,
 running batch inference, and saving responses with metadata.
@@ -48,7 +48,7 @@ class GeneratedResponse:
 
 
 # ---------------------------------------------------------------------------
-# Dataset loaders — each returns a list of TaskItems
+# Dataset loaders: each returns a list of TaskItems
 # ---------------------------------------------------------------------------
 
 def load_triviaqa(n_samples: int = 1500) -> list[TaskItem]:

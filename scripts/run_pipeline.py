@@ -1,17 +1,17 @@
 """
-run_pipeline.py — End-to-end PEI pipeline.
+run_pipeline.py: End-to-end PEI pipeline.
 
 Usage:
     python scripts/run_pipeline.py [--config configs/default.yaml] [--stage STAGE]
 
 Stages:
-    generate    — Generate model responses
-    judge       — Identify errors
-    probe       — Extract activations and train probes (ISD)
-    linguistic  — Extract linguistic features (LCS)
-    pei         — Compute PEI scores
-    analyse     — Run analysis and produce figures
-    all         — Run everything (default)
+    generate    Generate model responses
+    judge       Identify errors
+    probe       Extract activations and train probes (ISD)
+    linguistic  Extract linguistic features (LCS)
+    pei         Compute PEI scores
+    analyse     Run analysis and produce figures
+    all         Run everything (default)
 """
 
 from __future__ import annotations
