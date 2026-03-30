@@ -36,7 +36,7 @@ Linear probes (logistic regression on hidden-state activations) predict response
 
 The layer-wise pattern is consistent with prior work on truth representations in transformer activations: early layers encode surface features, middle-to-late layers encode semantic content most strongly, and the final layer (optimised for next-token prediction) is slightly less informative about factual correctness. Calibrated probes (Platt scaling on a 15% held-out calibration set) preserve the AUC ranking while producing better-distributed predicted probabilities; see `notebooks/v2_calibration.ipynb`.
 
-**Phase 1 ISD** separation between correct responses (mean 0.852) and errors (mean 0.232) was inflated by logistic regression's tendency to produce bimodal predicted probabilities on high-dimensional standardised inputs. **After Platt scaling**, the separation narrows substantially (correct mean 0.665, error mean 0.524, separation 0.141), confirming that the Phase 1 bimodality was largely a sigmoid artefact rather than a property of the probe. The signal remains: probes distinguish correct from incorrect responses, but with more realistic confidence estimates.
+Phase 1 ISD separation between correct responses (mean 0.852) and errors (mean 0.232) was inflated by logistic regression's tendency to produce bimodal predicted probabilities on high-dimensional standardised inputs. After Platt scaling, the separation narrows substantially (correct mean 0.665, error mean 0.524, separation 0.141), confirming that the Phase 1 bimodality was largely a sigmoid artefact rather than a property of the probe. The signal remains: probes distinguish correct from incorrect responses, but with more realistic confidence estimates.
 
 ### Linguistic Confidence
 
