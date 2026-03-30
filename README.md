@@ -36,15 +36,15 @@ Linear probes (logistic regression on hidden-state activations) predict response
 
 The layer-wise pattern is consistent with prior work on truth representations in transformer activations: early layers encode surface features, middle-to-late layers encode semantic content most strongly, and the final layer — optimised for next-token prediction — is slightly less informative about factual correctness.
 
-ISD separation between correct responses (mean 0.852) and errors (mean 0.232) confirms that the probes capture a genuine signal about internal knowledge.
+ISD separation between correct responses (mean 0.852) and errors (mean 0.232) confirms that the probes capture a genuine signal about internal knowledge. However, the magnitude of this separation partly reflects logistic regression's tendency to produce bimodal predicted probabilities on high-dimensional standardised inputs; see Limitations below and `notebooks/v2_calibration.ipynb` for calibrated results.
 
 ### Linguistic Confidence
 
-LCS scores range from 0.460 to 0.967, with a mean of 0.772 for correct responses and 0.790 for errors. The near-zero difference (−0.017) is itself a finding: the model does not hedge more when it is wrong. It is equally — or marginally more — assertive when producing errors, which is precisely what makes human oversight difficult.
+LCS scores range from 0.460 to 0.967, with a mean of 0.772 for correct responses and 0.790 for errors. The near-zero difference (−0.017) should not be overstated — at this effect size on a 0.46–0.97 scale, it is within noise. The value of LCS is not that it distinguishes correct from incorrect responses (it does not), but that it captures the variance *within* errors: the difference between a hedged wrong answer and an authoritative one.
 
 ### PEI
 
-ISD and LCS are weakly negatively correlated (r = −0.13), confirming that they capture distinct dimensions of error risk. This justifies the composite: internal knowledge and surface confidence are largely independent.
+ISD and LCS are weakly negatively correlated (r = −0.13), confirming that they capture distinct dimensions of error risk. This is the theoretically important finding: internal knowledge and surface confidence are largely independent, consistent with the hypothesis that RLHF shapes surface register independently of pretrained representations.
 
 PEI scores across the 1,389 errors: mean 0.442, std 0.130, median 0.421. Domain differences are highly significant (Kruskal-Wallis H = 94.2, p < 10⁻²⁰), with commonsense errors scoring highest (mean 0.551), likely driven by strong ISD signal in multiple-choice tasks where the model's internal representations favour the correct option.
 
@@ -67,6 +67,22 @@ PEI scores across the 1,389 errors: mean 0.442, std 0.130, median 0.421. Domain 
 | tqa_1479 | Factual QA | 0.003 | 0.005 | 0.000 | Explicit uncertainty marker ("likely referring to") |
 
 The contrast is the core argument: high-PEI errors are fluent, specific, and authoritative; low-PEI errors signal their own unreliability through hedging, self-contradiction, and uncertainty markers.
+
+## Limitations and Ongoing Work
+
+The Phase 1 pipeline exposed several structural weaknesses, each of which informs a specific design change documented in the V2 revised research design.
+
+**Probe calibration.** Logistic regression probes on high-dimensional standardised features produce bimodal predicted probabilities — most scores cluster near 0 or 1, inflating the apparent ISD separation between correct and incorrect responses. The `notebooks/v2_calibration.ipynb` notebook addresses this by re-training probes with Platt scaling (scikit-learn's `CalibratedClassifierCV`, sigmoid method, on a 15% held-out calibration set). Whether the distribution remains bimodal after calibration is itself informative: if it does, the bimodality reflects a genuine property of the probe rather than a sigmoid artefact.
+
+**LCS weighting.** The current LCS weights are assigned heuristically rather than derived from psycholinguistic literature or learned from data. The V2 design introduces three explicit weighting schemes — equal, literature-derived (grounded in Blankenship & Holtgraves 2005, Burrell & Koper 1998, Jerez-Fernandez et al. 2014), and a sensitivity band (±0.05 perturbation) — to determine whether the top-20 PEI ranking is robust to weighting choices.
+
+**HellaSwag response length.** Single-letter completions ("B", "D") have no linguistic surface for LCS to analyse, yet receive moderate-to-high confidence scores by default. A minimum response-length threshold (≥20 tokens) is applied in the V2 calibration notebook, with the excluded count reported for transparency.
+
+**PEI composition.** The switch from multiplicative (ISD × LCS) to additive (0.5 × ISD + 0.5 × LCS) was made without theoretical justification. Both compositions have defensible interpretations — multiplicative treats the dimensions as necessary conditions, additive as independent risk contributors — and the V2 pipeline reports both. The Phase 2 human experiment will adjudicate empirically.
+
+**Quantisation.** 4-bit quantisation perturbs activations relative to full-precision weights. Running at float16 on university GPU infrastructure would eliminate this confound.
+
+**Probe accuracy.** Layer 21's 69.9% accuracy means roughly 30% of individual ISD scores rest on incorrect probe judgements. The relative ranking of errors by ISD is likely more stable than absolute scores, and the qualitative showcase confirms this, but the uncertainty should be acknowledged.
 
 ## Pipeline Architecture
 
@@ -118,11 +134,11 @@ Each response is analysed across five feature categories using spaCy for syntact
 4. **Syntactic assertiveness** — declarative vs interrogative framing, active vs passive voice.
 5. **Fluency** — mean sentence length, repetition detection via trigram overlap.
 
-Features are combined using differentiated weighting: epistemic stance receives the highest weight as the most direct signal of surface confidence, followed by syntactic assertiveness. Low-variance features are down-weighted. Repetition acts as a penalty.
+Features are combined using differentiated weighting: epistemic stance receives the highest weight as the most direct signal of surface confidence, followed by syntactic assertiveness. Low-variance features are down-weighted. Repetition acts as a penalty. See Limitations above for discussion of the weighting methodology.
 
 ### PEI Composition
 
-Both ISD and LCS are min-max normalised across the error set and combined with equal weights: PEI = 0.5 × ISD_norm + 0.5 × LCS_norm. The equal weighting is a deliberate starting point; Phase 2 (human behavioural experiment) will empirically determine which component better predicts human detection failure.
+Both ISD and LCS are min-max normalised across the error set. The default composition is additive with equal weights: PEI = 0.5 × ISD_norm + 0.5 × LCS_norm. Multiplicative PEI (ISD_norm × LCS_norm) is also computed. Phase 2 (human behavioural experiment) will empirically determine which composition better predicts human detection failure.
 
 ## Reproducibility
 
@@ -132,15 +148,15 @@ pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 
 # Run the full pipeline (requires GPU for generation and probing stages)
-python scripts/run_pipeline.py --config configs/default.yaml
+python run_pipeline.py --config default.yaml
 
 # Run individual stages
-python scripts/run_pipeline.py --stage generate    # GPU
-python scripts/run_pipeline.py --stage judge       # CPU
-python scripts/run_pipeline.py --stage probe       # GPU
-python scripts/run_pipeline.py --stage linguistic  # CPU
-python scripts/run_pipeline.py --stage pei         # CPU
-python scripts/run_pipeline.py --stage analyse     # CPU
+python run_pipeline.py --stage generate    # GPU
+python run_pipeline.py --stage judge       # CPU
+python run_pipeline.py --stage probe       # GPU
+python run_pipeline.py --stage linguistic  # CPU
+python run_pipeline.py --stage pei         # CPU
+python run_pipeline.py --stage analyse     # CPU
 ```
 
 Colab notebooks for each stage are provided, with Google Drive checkpointing for resilience to session disconnections. Generation and probing require an A100 (or A10G with reduced batch size); linguistic analysis and PEI computation are CPU-only.
@@ -154,22 +170,20 @@ pei/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── configs/
-│   └── default.yaml              # All pipeline parameters
-├── src/
-│   ├── __init__.py
-│   ├── generate.py               # Batch inference with chat-template formatting
-│   ├── identify_errors.py        # Domain-specific extraction and matching
-│   ├── probe_internals.py        # Activation extraction, probe training, ISD
-│   ├── linguistic_features.py    # LCS feature taxonomy and extraction
-│   ├── pei_score.py              # Composite PEI computation
-│   └── analysis.py               # Visualisation and statistics
-├── scripts/
-│   └── run_pipeline.py           # End-to-end orchestration
-├── notebooks/                    # Colab notebooks for each stage
-└── data/
-    ├── tasks/
-    └── results/                  # Generated outputs, scores, figures
+├── default.yaml                      # All pipeline parameters
+├── generate.py                       # Batch inference with chat-template formatting
+├── identify_errors.py                # Domain-specific extraction and matching
+├── probe_internals.py                # Activation extraction, probe training, ISD
+├── linguistic_features.py            # LCS feature taxonomy and extraction
+├── pei_score.py                      # Composite PEI computation
+├── analysis.py                       # Visualisation and statistics
+├── run_pipeline.py                   # End-to-end orchestration
+└── notebooks/
+    ├── pei_stage1_generation.ipynb    # Stage 1: response generation
+    ├── pei_stage2_probing.ipynb       # Stage 2: activation extraction and probes
+    ├── pei_stage3_4_lcs_pei_analysis.ipynb  # Stages 3–4: LCS, PEI, analysis
+    ├── pei_dry_run.ipynb              # Dry-run validation
+    └── v2_calibration.ipynb           # Platt scaling, response filter, multiplicative PEI
 ```
 
 ## Connection to AI Safety
@@ -178,15 +192,13 @@ This work addresses a specific gap in scalable oversight: existing frameworks ev
 
 Applications include flagging high-risk outputs in deployed monitoring systems, calibrating oversight intensity to error risk, evaluating models on a safety-relevant dimension that accuracy benchmarks miss, and informing deployment thresholds for human-in-the-loop settings.
 
-The framework connects to ongoing work on probing (Marks & Tegmark, 2024; ICLR 2025 propositional probes), sycophancy mechanistics (ICLR 2026), CoT faithfulness (Barez et al., 2025), and automation bias (CHI 2025).
-
 ## Phase 2: MSc Dissertation
 
-This pipeline is the technical foundation for a behavioural experiment testing whether PEI predicts human error detection. Participants will complete a decision task assisted by an LLM with pre-generated errors at varying PEI levels, measuring detection rates, response latency, and the differential effect of reliance interventions on high- vs low-PEI errors. Ethics application and data collection are planned for Summer 2026.
+This pipeline is the technical foundation for a behavioural experiment testing whether PEI predicts human error detection. The theoretical framing draws on Bainbridge's (1983) ironies of automation — the observation that automation degrades the very skills needed to supervise it — extended to cognitive automation via LLMs. Participants will complete a decision task assisted by an LLM with pre-generated errors at varying PEI levels, measuring detection rates, response latency, and the differential effect of reliance interventions on high- vs low-PEI errors. The central prediction is that standard oversight interventions will fail precisely where PEI is high, because the model's surface presentation provides no cues for the human to latch onto.
 
 ## Author
 
-**Emmanuelle Gelain-Sohn** — MSc Speech and Language Processing, University of Edinburgh. BA Psychology and Linguistics, University of Oxford (First Class, George Humphrey Prize). Previously LLM Evaluation Research Intern at UCL.
+**Emmanuelle Gelain-Sohn** — MSc Speech and Language Processing, University of Edinburgh. BA Psychology and Linguistics, University of Oxford (First Class, ranked 2nd in year, George Humphrey Prize). Previously LLM Evaluation Research Intern at UCL (RExBench).
 
 ## Licence
 
