@@ -6,17 +6,17 @@
 
 ## The Problem
 
-If we are going to deploy LLMs in human-in-the-loop systems, we need to know which errors will actually fool the human. Not all errors are equal. A hedged, uncertain wrong answer is far less dangerous than a confident, well-structured one, especially when the model's internal representations encode the correct answer. Existing evaluation frameworks measure *whether* a model makes errors, but not *how dangerous those errors are for human oversight*.
+To deploy LLMs in human-in-the-loop systems, we need to know which errors are likely to be caught by humans and which are not. A hedged, uncertain wrong answer is less dangerous than a confident, well-structured one, particularly when the model's internal representations encode the correct answer. Existing evaluation frameworks measure whether a model makes errors, but not how dangerous those errors are for human oversight.
 
 ## What This Project Does
 
 PEI is a pipeline that, for each model error, simultaneously measures two dimensions:
 
-**Internal-Surface Divergence (ISD)**: does the model "know better"? Linear probes trained on hidden-state activations predict whether the model's internal representations encode the correct answer, even when the output is wrong. High ISD means the model's internals diverge from its surface behaviour: it encodes correctness but produces an error.
+**Internal-Surface Divergence (ISD)**: does the model "know better"? Linear probes trained on hidden-state activations predict whether the model's internal representations encode the correct answer, even when the output is wrong. High ISD means the model's internals diverge from its surface behaviour as it encodes correctness but produces an error.
 
 **Linguistic Confidence Score (LCS)**: how confidently is the error presented? A linguistically principled feature taxonomy (epistemic stance markers, evidentiality, discourse structure, syntactic assertiveness, fluency) captures the rhetorical persuasiveness of the output. High LCS means the error sounds authoritative.
 
-**PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight: the model internally "knows" the right answer *and* presents the wrong one with confidence. These are the errors that a human monitor, encountering a fluent and specific response, would be least likely to catch.
+**PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight: the model internally "knows" the right answer and presents the wrong one with confidence. These are the errors that a human monitor, encountering a fluent and specific response, would be least likely to catch.
 
 ## Results
 
@@ -40,7 +40,7 @@ The layer-wise pattern is consistent with prior work on truth representations in
 
 ### Linguistic Confidence
 
-LCS scores range from 0.460 to 0.967, with a mean of 0.772 for correct responses and 0.790 for errors. The near-zero difference (−0.017) should not be overstated: at this effect size on a 0.46-0.97 scale, it is within noise. The value of LCS is not that it distinguishes correct from incorrect responses (it does not), but that it captures the variance *within* errors: the difference between a hedged wrong answer and an authoritative one.
+LCS scores range from 0.460 to 0.967, with a mean of 0.772 for correct responses and 0.790 for errors. The near-zero difference (−0.017) should not be overstated: at this effect size on a 0.46-0.97 scale, it is within noise. The value of LCS is not that it distinguishes correct from incorrect responses (it does not), but that it captures the variance within errors: the difference between a hedged wrong answer and an authoritative one.
 
 ### PEI
 
