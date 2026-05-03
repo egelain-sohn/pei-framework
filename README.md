@@ -18,6 +18,8 @@ PEI is a pipeline that, for each model error, simultaneously measures two dimens
 
 **PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight: the model internally "knows" the right answer and presents the wrong one with confidence. These are the errors that a human monitor, encountering a fluent and specific response, would be least likely to catch.
 
+*Note on relationship to MSc dissertation*: This repository implements the original PEI framework: a hybrid pipeline combining ISD and LCS measures of LLM error risk. My MSc dissertation pursues the same underlying question — how persuasiveness shapes whether errors evade human oversight — but narrows to LCS alone. The dissertation also takes a different methodological route. I test a theoretically derived feature set against empirically derived weights from a pairwise judgement study, with the comparison between predicted and observed weightings forming part of the contribution. The work here stands as the exploratory pipeline through which that decision was reached.
+
 ## Results
 
 Evaluated on **Qwen-2.5-7B-Instruct** (4-bit quantised) across three task domains: factual QA (TriviaQA, n=1,500), mathematical reasoning (GSM8K, n=1,000), and commonsense completion (HellaSwag, n=1,000). Total: 3,500 generations, 1,389 errors (39.7%).
