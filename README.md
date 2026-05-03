@@ -8,6 +8,8 @@
 
 To deploy LLMs in human-in-the-loop systems, we need to know which errors are likely to be caught by humans and which are not. A hedged, uncertain wrong answer is less dangerous than a confident, well-structured one, particularly when the model's internal representations encode the correct answer. Existing evaluation frameworks measure whether a model makes errors, but not how dangerous those errors are for human oversight.
 
+*Note on relationship to MSc dissertation*: This repository implements the original PEI framework: a hybrid pipeline combining ISD and LCS measures of LLM error risk. My MSc dissertation pursues the same underlying question — how persuasiveness shapes whether errors evade human oversight — but narrows to LCS alone. The dissertation also takes a different methodological route. I test a theoretically derived feature set against empirically derived weights from a pairwise judgement study, with the comparison between predicted and observed weightings forming part of the contribution. The work here stands as the exploratory pipeline through which that decision was reached.
+
 ## What This Project Does
 
 PEI is a pipeline that, for each model error, simultaneously measures two dimensions:
@@ -17,8 +19,6 @@ PEI is a pipeline that, for each model error, simultaneously measures two dimens
 **Linguistic Confidence Score (LCS)**: how confidently is the error presented? A linguistically principled feature taxonomy (epistemic stance markers, evidentiality, discourse structure, syntactic assertiveness, fluency) captures the rhetorical persuasiveness of the output. High LCS means the error sounds authoritative.
 
 **PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight: the model internally "knows" the right answer and presents the wrong one with confidence. These are the errors that a human monitor, encountering a fluent and specific response, would be least likely to catch.
-
-*Note on relationship to MSc dissertation*: This repository implements the original PEI framework: a hybrid pipeline combining ISD and LCS measures of LLM error risk. My MSc dissertation pursues the same underlying question — how persuasiveness shapes whether errors evade human oversight — but narrows to LCS alone. The dissertation also takes a different methodological route. I test a theoretically derived feature set against empirically derived weights from a pairwise judgement study, with the comparison between predicted and observed weightings forming part of the contribution. The work here stands as the exploratory pipeline through which that decision was reached.
 
 ## Results
 
@@ -195,13 +195,9 @@ This work addresses a specific gap in scalable oversight: existing frameworks ev
 
 Applications include flagging high-risk outputs in deployed monitoring systems, calibrating oversight intensity to error risk, evaluating models on a safety-relevant dimension that accuracy benchmarks miss, and informing deployment thresholds for human-in-the-loop settings.
 
-## Phase 2: MSc Dissertation
-
-This pipeline is the technical foundation for a behavioural experiment testing whether PEI predicts human error detection. The theoretical framing draws on Bainbridge's (1983) ironies of automation, the observation that automation degrades the very skills needed to supervise it, extended to cognitive automation via LLMs. Participants will complete a decision task assisted by an LLM with pre-generated errors at varying PEI levels, measuring detection rates, response latency, and the differential effect of reliance interventions on high- vs low-PEI errors. The central prediction is that standard oversight interventions will fail precisely where PEI is high, because the model's surface presentation provides no cues for the human to latch onto.
-
 ## Author
 
-**Emmanuelle Gelain-Sohn**, MSc Speech and Language Processing, University of Edinburgh. BA Psychology and Linguistics, University of Oxford (First Class, ranked 2nd in year, George Humphrey Prize). Previously LLM Evaluation Research Intern at UCL (RExBench).
+**Emmanuelle Gelain-Sohn**, MSc Speech and Language Processing, University of Edinburgh. BA Psychology and Linguistics, University of Oxford (First Class, ranked 2nd in year, George Humphrey Prize).
 
 ## Licence
 
