@@ -18,7 +18,7 @@ PEI is a pipeline that, for each model error, simultaneously measures two dimens
 
 **Linguistic Confidence Score (LCS)**: how confidently is the error presented? A linguistically principled feature taxonomy (epistemic stance markers, evidentiality, discourse structure, syntactic assertiveness, fluency) captures the rhetorical persuasiveness of the output. High LCS means the error sounds authoritative.
 
-**PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight: the model internally "knows" the right answer and presents the wrong one with confidence. These are the errors that a human monitor, encountering a fluent and specific response, would be least likely to catch.
+**PEI** combines these into a single score. High-PEI errors are the most dangerous for human oversight as the model internally "knows" the right answer and presents the wrong one with confidence. A high-LCS, low-ISD error is recoverable - the surface persuasiveness reflects a real gap in the model's representations, and an internal-state monitor (a probe, an activation-based hallucination detector) could flag it. A high-PEI error fails both channels and is more likely to survive layered defences, as a human reader sees no surface cue to doubt the output, and an introspective monitor would have no internal disagreement to detect, because the divergence between representation and behaviour produced the error.
 
 ## Results
 
@@ -80,7 +80,7 @@ The Phase 1 pipeline exposed several structural weaknesses. The V2 calibration n
 
 **HellaSwag response length (addressed in V2).** Single-letter completions ("B", "D") have no linguistic surface for LCS to analyse, yet receive moderate-to-high confidence scores by default. The V2 notebook applies a minimum response-length threshold (>=20 tokens), excluding 680 responses (predominantly HellaSwag and short factual QA). The excluded count is reported for transparency.
 
-**PEI composition (addressed in V2).** The switch from multiplicative (ISD x LCS) to additive (0.5 x ISD + 0.5 x LCS) was made without theoretical justification. Both compositions have defensible interpretations: multiplicative treats the dimensions as necessary conditions, additive as independent risk contributors. The V2 notebook reports both. The two compositions are highly rank-correlated (Spearman r = 0.945), indicating that the ranking of the most dangerous errors is stable across composition choice. The Phase 2 human experiment will adjudicate which better predicts detection failure.
+**PEI composition (addressed in V2).** The switch from multiplicative (ISD x LCS) to additive (0.5 x ISD + 0.5 x LCS) was made without theoretical justification. Both compositions have defensible interpretations: multiplicative treats the dimensions as necessary conditions, additive as independent risk contributors. The V2 notebook reports both. The two compositions are highly rank-correlated (Spearman r = 0.945), indicating that the ranking of the most dangerous errors is stable across composition choice.
 
 **LCS weighting (open).** The current LCS weights are assigned heuristically rather than derived from psycholinguistic literature or learned from data. The V2 design introduces three explicit weighting schemes (equal, literature-derived grounded in Blankenship & Holtgraves 2005, Burrell & Koper 1998, Jerez-Fernandez et al. 2014, and a sensitivity band of +-0.05 perturbation) to determine whether the top-20 PEI ranking is robust to weighting choices.
 
@@ -142,7 +142,7 @@ Features are combined using differentiated weighting: epistemic stance receives 
 
 ### PEI Composition
 
-Both ISD and LCS are min-max normalised across the error set. The default composition is additive with equal weights: PEI = 0.5 * ISD_norm + 0.5 * LCS_norm. Multiplicative PEI (ISD_norm * LCS_norm) is also computed. Phase 2 (human behavioural experiment) will empirically determine which composition better predicts human detection failure.
+Both ISD and LCS are min-max normalised across the error set. The default composition is additive with equal weights: PEI = 0.5 * ISD_norm + 0.5 * LCS_norm. Multiplicative PEI (ISD_norm * LCS_norm) is also computed.
 
 ## Reproducibility
 
